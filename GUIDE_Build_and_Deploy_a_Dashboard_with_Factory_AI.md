@@ -169,19 +169,43 @@ This is how you make the dashboard accessible to everyone at EY via a web link.
 
 Your dashboard is now live. You can share the Streamlit URL with your team to start testing. For non-sensitive data, this is ready to use now. For sensitive data, complete Step 8 (SSO activation) before sharing broadly.
 
-**Access works like this:**
+**There are two roles:**
 
-| Who | What They Can Do |
-|-----|-----------------|
-| Anyone with an @ey.com email | View the dashboard, use filters, explore data |
-| Admins (emails you configure) | Edit data directly, download exports, manage other admins |
+| Role | Who Gets It | What They Can Do |
+|------|------------|-----------------|
+| **Viewer** | Anyone with an @ey.com email | View charts, use filters, explore data |
+| **Admin** | Only people you specifically grant access to | Everything a viewer can do, PLUS: edit data directly in the app, download CSV exports, save changes back to Excel, and add or remove other admins |
 
-### To add an admin:
+> **You are the first admin.** Your email is set as admin by default when Factory.AI builds the app. Everyone else starts as a viewer.
 
-1. Open the dashboard and sign in with your @ey.com email
-2. Scroll to the bottom: **"Admin: Manage Admins"**
-3. Enter the new admin's @ey.com email
+### How to Give Someone Admin Access
+
+1. Open the dashboard and sign in with your @ey.com email (you must already be an admin)
+2. Scroll to the bottom of the page to the **"Admin: Manage Admins"** section
+3. In the **"Add admin email"** field, enter the person's full @ey.com email address
 4. Click **"Add Admin"**
+5. The person will have admin access immediately on their next page load
+
+### How to Remove Admin Access
+
+1. Scroll to the **"Admin: Manage Admins"** section
+2. Use the **"Remove admin"** dropdown to select the person
+3. Click **"Remove Admin"**
+4. They will revert to viewer access immediately
+
+> **Note:** You cannot remove yourself as admin. There must always be at least one admin.
+
+### What Each Role Sees
+
+| Feature | Viewer | Admin |
+|---------|--------|-------|
+| View all charts and KPIs | Yes | Yes |
+| Use filters (Region, Sector, Date, etc.) | Yes | Yes |
+| View raw data table | Yes (read-only, in expandable section) | Yes (editable, always visible) |
+| Edit data directly in the app | No | Yes |
+| Save changes back to Excel | No | Yes |
+| Download data as CSV | No | Yes |
+| Add/remove admins | No | Yes |
 
 ---
 

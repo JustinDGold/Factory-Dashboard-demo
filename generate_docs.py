@@ -234,18 +234,31 @@ def make_word():
         {
             "title": "Step 6: Share With Your Team",
             "content": [
-                ("text", "Your dashboard is now live. Share the Streamlit URL with anyone at EY."),
-                ("heading3", "Access Model"),
+                ("text", "Your dashboard is now live. Share the Streamlit URL with your team. For sensitive data, complete Step 8 (SSO) before sharing broadly."),
+                ("heading3", "Two Roles: Viewer vs Admin"),
                 ("bullets", [
-                    "Anyone with an @ey.com email: View the dashboard, use filters, explore data",
-                    "Admins (emails you configure): Edit data directly, download exports, manage other admins",
+                    "Viewer (any @ey.com email): View charts, use filters, explore data",
+                    "Admin (only people you grant): Edit data, download CSV, save to Excel, manage other admins",
                 ]),
-                ("heading3", "To add an admin:"),
+                ("text", "You are the first admin. Your email is set as admin by default. Everyone else starts as a viewer."),
+                ("heading3", "How to Give Someone Admin Access"),
                 ("numbered", [
-                    "Open the dashboard and sign in with your @ey.com email",
+                    "Open the dashboard and sign in (you must be an admin)",
                     'Scroll to the bottom: "Admin: Manage Admins"',
-                    "Enter the new admin's @ey.com email",
-                    'Click "Add Admin"',
+                    "Enter the person's full @ey.com email in the 'Add admin email' field",
+                    'Click "Add Admin" \u2014 they have admin access immediately',
+                ]),
+                ("heading3", "How to Remove Admin Access"),
+                ("numbered", [
+                    'Scroll to "Admin: Manage Admins"',
+                    "Use the 'Remove admin' dropdown to select the person",
+                    'Click "Remove Admin" \u2014 they revert to viewer immediately',
+                ]),
+                ("tip", "You cannot remove yourself as admin. There must always be at least one admin."),
+                ("heading3", "What Each Role Sees"),
+                ("bullets", [
+                    "Viewers: Charts, KPIs, filters, read-only data table (in expandable section)",
+                    "Admins: All of the above PLUS editable data table, save to Excel, CSV download, admin management panel",
                 ]),
             ],
         },
@@ -636,12 +649,25 @@ def make_ppt():
         "Share the Streamlit URL to start testing.",
         "For sensitive data, complete Step 8 (SSO) before sharing broadly.",
         "",
-        "Access model:",
-        "   Any @ey.com email  →  View dashboard (read-only)",
-        "   Admins you configure  →  Edit data, manage access",
+        "Two roles:",
+        "   Viewer (any @ey.com email)  →  View charts, filters, read-only data",
+        "   Admin (people you grant)      →  Edit data, download, manage access",
         "",
-        "To add an admin: scroll to bottom of dashboard",
-        '   → "Admin: Manage Admins" → enter their @ey.com email',
+        "You are the first admin. Everyone else starts as a viewer.",
+    ])
+
+    # ── Slide 9b: Managing Access ──
+    add_slide("Managing Admin vs Viewer Access", [
+        "To give someone admin access:",
+        "   1.  Sign in as admin > scroll to 'Admin: Manage Admins'",
+        "   2.  Enter their @ey.com email > click 'Add Admin'",
+        "   3.  They have admin access immediately",
+        "",
+        "To remove admin access:",
+        "   1.  Use the 'Remove admin' dropdown > click 'Remove Admin'",
+        "   2.  They revert to viewer access immediately",
+        "",
+        "Note: You cannot remove yourself. At least one admin is required.",
     ])
 
     # ── Slide 10: Step 7 ──
