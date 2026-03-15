@@ -207,11 +207,146 @@ When you update your Excel file:
 
 ---
 
-## Optional: Add Microsoft SSO (Real Login Validation)
+## Step 8: Secure Your Dashboard with Microsoft SSO (Recommended for Sensitive Data)
 
-If you want users to sign in with their actual EY Microsoft account instead of typing their email, you will need help from your IT team. See the `AZURE_SSO_SETUP.md` file in your repository for detailed instructions to share with them.
+> **Why this matters:** Without SSO, anyone can type any @ey.com email into the dashboard. The app has no way to verify they are who they say they are. If your dashboard contains sensitive or confidential data, you must enable Microsoft SSO. This forces users to sign in with their real EY Microsoft account — the same login they use for Outlook and Teams.
 
-> **Note:** The dashboard works perfectly without SSO. This is an optional security enhancement.
+> **Good news:** The dashboard code already supports SSO. You do not need to change any code. You only need to register an app in Azure and paste three values into Streamlit Cloud. Once you do, SSO activates automatically.
+
+### What You Need
+
+You will need someone at EY with **Azure AD admin** (or **Application Administrator**) access. This is typically someone in your IT or Cloud Infrastructure team. Share this section with them.
+
+### 8a. Register an App in Microsoft Entra ID (Azure AD)
+
+1. Go to [portal.azure.com](https://portal.azure.com) and sign in with your EY account
+2. In the top search bar, type **"App registrations"** and click on it
+3. Click **"+ New registration"**
+4. Fill in:
+   - **Name:** `Factory AI Dashboard`
+   - **Supported account types:** Select **"Accounts in this organizational directory only"** (this restricts login to EY employees only)
+   - **Redirect URI:**
+     - Platform: **Web**
+     - URI: Your Streamlit Cloud URL (e.g., `https://my-dashboard-xyz.streamlit.app`)
+5. Click **Register**
+
+### 8b. Copy Your Two IDs
+
+After registration, you will land on the app's **Overview** page. Copy these two values and save them somewhere safe:
+
+| Field on Screen | What to Save It As |
+|----------------|-------------------|
+| Application (client) ID | `client_id` |
+| Directory (tenant) ID | `tenant_id` |
+
+### 8c. Create a Client Secret
+
+1. In the left sidebar of your app registration, click **"Certificates & secrets"**
+2. Click **"+ New client secret"**
+3. Enter a description (e.g., `streamlit-dashboard`)
+4. Choose an expiry period (e.g., 12 months)
+5. Click **Add**
+6. **Immediately copy the value in the "Value" column** — this is your `client_secret`
+
+> **Important:** The secret value is only shown once. If you navigate away without copying it, you will need to create a new one.
+
+### 8d. Add API Permissions
+
+1. In the left sidebar, click **"API permissions"**
+2. Click **"+ Add a permission"**
+3. Select **"Microsoft Graph"**
+4. Select **"Delegated permissions"**
+5. Search for **"User.Read"** and check the box
+6. Click **"Add permissions"**
+7. Click the **"Grant admin consent for EY"** button (this requires admin privileges)
+
+> **If you do not see the "Grant admin consent" button:** You need someone with a higher admin role to click it for you. Send them a link to this app registration page.
+
+### 8e. Add Your Three Values to Streamlit Cloud
+
+This is the final step. No code changes are needed — you are just entering configuration.
+
+1. Go to [share.streamlit.io](https://share.streamlit.io)
+2. Find your app and click the three-dot menu (⋯) > **Settings**
+3. Click the **"Secrets"** tab
+4. Paste the following, replacing the placeholder values with your actual values:
+
+```toml
+[azure]
+client_id = "paste-your-application-client-id-here"
+client_secret = "paste-your-client-secret-value-here"
+tenant_id = "paste-your-directory-tenant-id-here"
+redirect_uri = "https://your-app-name.streamlit.app"
+```
+
+5. Click **Save**
+6. Click **"Reboot app"** (or go to the Manage app menu and reboot)
+
+### 8f. Verify It Works
+
+1. Open your dashboard URL in a private/incognito browser window
+2. You should see a **"Sign in with Microsoft"** button instead of a text field
+3. Click it — you will be redirected to Microsoft's login page
+4. Sign in with your EY account
+5. You should be returned to the dashboard, now showing your name and email
+
+> **If you see an error after signing in:** The most common cause is the redirect URI not matching exactly. Go back to your app registration in Azure Portal > **Authentication** and verify the redirect URI matches your Streamlit Cloud URL exactly (including https:// and no trailing slash).
+
+### What Changes for Users
+
+| Before SSO | After SSO |
+|-----------|-----------|
+| Users type their email into a text box | Users click "Sign in with Microsoft" |
+| No verification — anyone can type any email | Microsoft verifies their identity |
+| Only suitable for non-sensitive data | Suitable for sensitive and confidential data |
+| No audit trail | Microsoft logs all sign-ins |
+
+### Quick Summary for Your IT Team
+
+If you need to send a brief request to your IT team, here is a template:
+
+> Hi,
+>
+> I need an Azure AD (Microsoft Entra ID) app registration for an internal Streamlit dashboard. Could you help with the following?
+>
+> 1. Register a new app called "Factory AI Dashboard"
+> 2. Set supported account types to "Accounts in this organizational directory only"
+> 3. Add a Web redirect URI: [your Streamlit URL]
+> 4. Create a client secret
+> 5. Add the Microsoft Graph "User.Read" delegated permission and grant admin consent
+> 6. Send me the Application (client) ID, Directory (tenant) ID, and client secret value
+>
+> Full setup instructions are here: [link to AZURE_SSO_SETUP.md in your GitHub repo]
+>
+> Thank you!
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| **"ModuleNotFoundError"** on Streamlit Cloud | A Python package is missing. Tell Factory.AI: "add [package name] to requirements.txt and push to GitHub" |
+| **"Excel file not found"** on Streamlit Cloud | The Excel file is not in the repo. Tell Factory.AI: "copy my Excel file into the data folder in the repo and push" |
+| **Dashboard looks broken after changes** | Go back to Factory.AI, paste the error, and say "fix this." Then push to GitHub. |
+| **Charts show wrong data** | Check your Excel file for blank rows, text in numeric columns, or merged cells. Clean the data and re-push. |
+| **Can't access Streamlit Cloud** | Make sure you signed up at [streamlit.io/cloud](https://streamlit.io/cloud) with the same GitHub account that owns the repo. |
+| **SSO: "AADSTS50011" redirect URI error** | The redirect URI in Azure does not match your Streamlit URL exactly. Fix it in Azure Portal > App registration > Authentication. |
+| **SSO: "Authentication failed"** | The client secret may have expired. Create a new one in Azure Portal and update Streamlit Cloud secrets. |
+| **SSO: "Grant admin consent" button missing** | You need a Global Administrator or Privileged Role Administrator to grant consent. Ask your IT admin. |
+
+---
+
+## Quick Reference
+
+| Task | What to Tell Factory.AI |
+|------|------------------------|
+| Build a dashboard | "Create a Streamlit dashboard using [file path]" |
+| Change a chart | "Change the bar chart to a line chart" |
+| Add a filter | "Add a filter for [column name]" |
+| Fix an error | Paste the error and say "fix this" |
+| Push to GitHub | "Push the changes to GitHub" |
+| Create a new repo | "Push this to GitHub and create a repo called [name]" |
 
 ---
 
