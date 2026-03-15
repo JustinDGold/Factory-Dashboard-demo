@@ -34,6 +34,14 @@ def load_data(path: str, _mtime: float):
     file changes on disk (OneDrive sync)."""
     df = pd.read_excel(path, sheet_name="Fact_Monthly", engine="openpyxl")
     df["Month"] = pd.to_datetime(df["Month"])
+    numeric_cols = [
+        "AI Use Cases Delivered", "Automation Hours Saved", "Client Engagements",
+        "Revenue Influenced (USD)", "Delivery Cost (USD)", "Pipeline Value (USD)",
+        "Model Deployments", "Avg Model Accuracy (%)",
+    ]
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
     return df
 
 
@@ -53,13 +61,25 @@ def load_kpis(path: str, _mtime: float):
 # Access control helpers
 # ---------------------------------------------------------------------------
 
-def check_editor(cfg):
-    """Return True if the current user is in the editors list."""
-    if "user_role" not in st.session_state:
-        st.session_state["user_role"] = "viewer"
-    editors = [e.lower().strip() for e in cfg.get("editors", [])]
-    current = st.session_state.get("username", "").lower().strip()
-    return current in editors
+def is_admin(cfg) -> bool:
+    """Return True if the current user's EY email is in the admins list."""
+    admins = [a.lower().strip() for a in cfg.get("admins", [])]
+    current = st.session_state.get("user_email", "").lower().strip()
+    return current in admins
+
+
+def has_access(cfg) -> bool:
+    """Return True if user is an admin or an approved viewer."""
+    if is_admin(cfg):
+        return True
+    viewers = [v.lower().strip() for v in cfg.get("viewers", [])]
+    current = st.session_state.get("user_email", "").lower().strip()
+    return current in viewers
+
+
+def save_config(cfg):
+    with open(CONFIG_PATH, "w") as f:
+        yaml.safe_dump(cfg, f, default_flow_style=False)
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +116,7 @@ EY_COLORS = ["#FFE600", "#00A3E0", "#FF6D00", "#2C973E", "#C893D4", "#E0004D"]
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="Factory.ai Partner Dashboard",
+    page_title="Factory.AI Partner Dashboard",
     page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -153,18 +173,22 @@ kpis = load_kpis(excel_path, mtime)
 
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/commons/3/34/EY_logo_2019.svg", width=80)
-    st.markdown("### Factory.ai Partner Dashboard")
+    st.markdown("### Factory.AI Partner Dashboard")
 
     st.divider()
 
-    # Simple identity input (replace with SSO in production)
-    username = st.text_input("Your EY username", value=st.session_state.get("username", ""), placeholder="first.last")
-    if username:
-        st.session_state["username"] = username
+    # Login via EY email
+    email = st.text_input(
+        "Your EY email",
+        value=st.session_state.get("user_email", ""),
+        placeholder="first.last@ey.com",
+    )
+    if email:
+        st.session_state["user_email"] = email.lower().strip()
 
-    is_editor = check_editor(cfg)
-    if is_editor:
-        st.success("Role: Editor")
+    user_is_admin = is_admin(cfg)
+    if user_is_admin:
+        st.success("Role: Admin")
     else:
         st.info("Role: Viewer (read-only)")
 
@@ -180,12 +204,16 @@ with st.sidebar:
     sel_sectors = st.multiselect("Sector", sectors, default=sectors)
     sel_offerings = st.multiselect("Offering", offerings, default=offerings)
 
-    min_month, max_month = months[0], months[-1]
+    min_month = months[0].to_pydatetime()
+    today = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    max_data_month = months[-1].to_pydatetime()
+    slider_max = max(today, max_data_month)
+
     date_range = st.slider(
         "Date Range",
-        min_value=min_month.to_pydatetime(),
-        max_value=max_month.to_pydatetime(),
-        value=(min_month.to_pydatetime(), max_month.to_pydatetime()),
+        min_value=min_month,
+        max_value=slider_max,
+        value=(min_month, slider_max),
         format="MMM YYYY",
     )
 
@@ -197,6 +225,19 @@ with st.sidebar:
     )
     refresh = cfg.get("refresh_interval_seconds", 10)
     st.caption(f"Auto-refresh every {refresh}s")
+
+# ---------------------------------------------------------------------------
+# Access gate
+# ---------------------------------------------------------------------------
+
+user_email = st.session_state.get("user_email", "").strip()
+if not user_email:
+    st.warning("Please enter your EY email in the sidebar to access the dashboard.")
+    st.stop()
+
+if not has_access(cfg):
+    st.error("You do not have access to this dashboard. Ask an admin to grant you access.")
+    st.stop()
 
 # ---------------------------------------------------------------------------
 # Apply filters
@@ -215,7 +256,7 @@ fdf = df[mask].copy()
 # Header
 # ---------------------------------------------------------------------------
 
-st.markdown("## Factory.ai Partner Dashboard (USD)")
+st.markdown("## Factory.AI Partner Dashboard (USD)")
 st.caption("Real-time view powered by OneDrive-synced Excel data")
 
 # ---------------------------------------------------------------------------
@@ -454,53 +495,129 @@ with col8:
     st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------------------------------
-# Data table (editors can download)
+# Data table + Admin editing
 # ---------------------------------------------------------------------------
 
 st.divider()
 st.markdown("### Detailed Data")
 
-if is_editor:
-    st.markdown("*Editor mode: you can download and export data.*")
+if user_is_admin:
+    st.markdown("*Admin mode: you can edit data, download exports, and manage access.*")
     csv = fdf.to_csv(index=False).encode("utf-8")
     st.download_button("Download Filtered CSV", csv, "factory_ai_dashboard_export.csv", "text/csv")
 
-with st.expander("View raw data", expanded=False):
-    st.dataframe(fdf, use_container_width=True, height=400)
+    st.markdown("#### Edit Data")
+    edited_df = st.data_editor(
+        fdf,
+        use_container_width=True,
+        height=400,
+        num_rows="dynamic",
+        key="data_editor",
+    )
+
+    if st.button("Save Changes to Excel"):
+        full_df = df.copy()
+        full_df.update(edited_df)
+        new_rows = edited_df.loc[~edited_df.index.isin(df.index)]
+        if not new_rows.empty:
+            full_df = pd.concat([full_df, new_rows], ignore_index=True)
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+            full_df.to_excel(writer, sheet_name="Fact_Monthly", index=False)
+        st.success("Changes saved to Excel. Dashboard will refresh automatically.")
+        load_data.clear()
+        load_kpis.clear()
+        time.sleep(1)
+        st.rerun()
+else:
+    with st.expander("View raw data", expanded=False):
+        st.dataframe(fdf, use_container_width=True, height=400)
 
 # ---------------------------------------------------------------------------
-# Editor-only: manage editors list
+# Admin-only: manage access
 # ---------------------------------------------------------------------------
 
-if is_editor:
+if user_is_admin:
     st.divider()
-    st.markdown("### Admin: Manage Editors")
-    st.caption("Add or remove usernames that have edit access.")
+    st.markdown("### Admin: Manage Access")
 
-    current_editors = cfg.get("editors", [])
-    st.text(f"Current editors: {', '.join(current_editors)}")
+    tab_viewers, tab_admins = st.tabs(["Viewers", "Admins"])
 
-    new_editor = st.text_input("Add editor username", placeholder="first.last")
-    if st.button("Add Editor") and new_editor:
-        if new_editor.lower().strip() not in [e.lower().strip() for e in current_editors]:
-            current_editors.append(new_editor.strip())
-            cfg["editors"] = current_editors
-            with open(CONFIG_PATH, "w") as f:
-                yaml.safe_dump(cfg, f, default_flow_style=False)
-            st.success(f"Added {new_editor}")
-            st.rerun()
+    # --- Viewers tab ---
+    with tab_viewers:
+        st.caption("Viewers have read-only access to the dashboard.")
+        current_viewers = cfg.get("viewers", [])
+        if current_viewers:
+            st.markdown("**Current viewers:**")
+            for v in current_viewers:
+                st.text(f"  {v}")
         else:
-            st.warning("Username already in editors list.")
+            st.info("No viewers added yet. All access is currently admin-only.")
 
-    if len(current_editors) > 1:
-        remove_editor = st.selectbox("Remove editor", current_editors)
-        if st.button("Remove Editor"):
-            current_editors.remove(remove_editor)
-            cfg["editors"] = current_editors
-            with open(CONFIG_PATH, "w") as f:
-                yaml.safe_dump(cfg, f, default_flow_style=False)
-            st.success(f"Removed {remove_editor}")
-            st.rerun()
+        new_viewer = st.text_input("Add viewer email", placeholder="first.last@ey.com", key="add_viewer")
+        if st.button("Add Viewer") and new_viewer:
+            normalized = new_viewer.lower().strip()
+            if not normalized.endswith("@ey.com"):
+                st.warning("Please enter a valid @ey.com email address.")
+            elif normalized in [a.lower().strip() for a in cfg.get("admins", [])]:
+                st.warning("This user is already an admin.")
+            elif normalized not in [v.lower().strip() for v in current_viewers]:
+                current_viewers.append(normalized)
+                cfg["viewers"] = current_viewers
+                save_config(cfg)
+                st.success(f"Added {normalized} as viewer")
+                load_config.clear()
+                st.rerun()
+            else:
+                st.warning("Email already in viewers list.")
+
+        if current_viewers:
+            remove_viewer = st.selectbox("Remove viewer", current_viewers, key="rm_viewer")
+            if st.button("Remove Viewer"):
+                current_viewers.remove(remove_viewer)
+                cfg["viewers"] = current_viewers
+                save_config(cfg)
+                st.success(f"Removed {remove_viewer}")
+                load_config.clear()
+                st.rerun()
+
+    # --- Admins tab ---
+    with tab_admins:
+        st.caption("Admins can edit data, export, and manage all user access.")
+        current_admins = cfg.get("admins", [])
+        st.markdown("**Current admins:**")
+        for a in current_admins:
+            st.text(f"  {a}")
+
+        new_admin = st.text_input("Add admin email", placeholder="first.last@ey.com", key="add_admin")
+        if st.button("Add Admin") and new_admin:
+            normalized = new_admin.lower().strip()
+            if not normalized.endswith("@ey.com"):
+                st.warning("Please enter a valid @ey.com email address.")
+            elif normalized not in [a.lower().strip() for a in current_admins]:
+                current_admins.append(normalized)
+                cfg["admins"] = current_admins
+                # Remove from viewers if they were a viewer
+                viewers = cfg.get("viewers", [])
+                cfg["viewers"] = [v for v in viewers if v.lower().strip() != normalized]
+                save_config(cfg)
+                st.success(f"Added {normalized} as admin")
+                load_config.clear()
+                st.rerun()
+            else:
+                st.warning("Email already in admins list.")
+
+        if len(current_admins) > 1:
+            remove_admin = st.selectbox("Remove admin", current_admins, key="rm_admin")
+            if st.button("Remove Admin"):
+                if remove_admin.lower().strip() == st.session_state.get("user_email", "").lower().strip():
+                    st.warning("You cannot remove yourself.")
+                else:
+                    current_admins.remove(remove_admin)
+                    cfg["admins"] = current_admins
+                    save_config(cfg)
+                    st.success(f"Removed {remove_admin}")
+                    load_config.clear()
+                    st.rerun()
 
 # ---------------------------------------------------------------------------
 # Auto-refresh: re-run every N seconds to pick up Excel changes

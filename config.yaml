@@ -7,9 +7,13 @@ excel_path: "/Users/Justin.D.Gold/Library/CloudStorage/OneDrive-EY/factory_ai_pa
 refresh_interval_seconds: 10
 
 # Role-based access control
-# "editors" can modify filters/settings and export data
+# "admins" can edit data directly in the app and grant admin access to others
 # Everyone else has read-only view access
-editors:
-  - "justin.d.gold"
-  # Add more editor usernames below:
-  # - "first.last"
+# Use full EY email addresses
+admins:
+  - "justin.d.gold@ey.com"
+  # Add more admin emails below:
+  # - "first.last@ey.com"
+
+# Viewers have read-only dashboard access (managed by admins in-app)
+viewers: []
