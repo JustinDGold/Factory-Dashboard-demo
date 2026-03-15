@@ -7,6 +7,7 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
+from auth import require_auth, show_user_info
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -173,14 +174,16 @@ with st.sidebar:
 
     st.divider()
 
-    # Login via EY email
-    email = st.text_input(
-        "Your EY email",
-        value=st.session_state.get("user_email", ""),
-        placeholder="first.last@ey.com",
-    )
-    if email:
-        st.session_state["user_email"] = email.lower().strip()
+    # Microsoft SSO or fallback email input
+    sso_active = show_user_info()
+    if not sso_active:
+        email = st.text_input(
+            "Your EY email",
+            value=st.session_state.get("user_email", ""),
+            placeholder="first.last@ey.com",
+        )
+        if email:
+            st.session_state["user_email"] = email.lower().strip()
 
     user_is_admin = is_admin(cfg)
     if user_is_admin:
@@ -223,17 +226,11 @@ with st.sidebar:
     st.caption(f"Auto-refresh every {refresh}s")
 
 # ---------------------------------------------------------------------------
-# Access gate
+# Access gate (Microsoft SSO when configured, email fallback otherwise)
 # ---------------------------------------------------------------------------
 
-user_email = st.session_state.get("user_email", "").strip()
-if not user_email:
-    st.warning("Please enter your EY email in the sidebar to access the dashboard.")
-    st.stop()
-
-if not user_email.endswith("@ey.com"):
-    st.error("Access is restricted to EY employees. Please enter a valid @ey.com email.")
-    st.stop()
+authenticated_email = require_auth()
+st.session_state["user_email"] = authenticated_email
 
 # ---------------------------------------------------------------------------
 # Apply filters
