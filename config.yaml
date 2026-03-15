@@ -1,19 +1,7 @@
-# Factory.ai Partner Dashboard Configuration
-
-# Path to the source Excel file (OneDrive-synced)
-excel_path: "/Users/Justin.D.Gold/Library/CloudStorage/OneDrive-EY/factory_ai_partner_dashboard_usd.xlsx"
-
-# How often to check for file changes (seconds)
+admins:
+- justin.d.gold@ey.com
+- nick.wade@ey.com
+- justin.peek@ey.com
+excel_path: /Users/Justin.D.Gold/Library/CloudStorage/OneDrive-EY/factory_ai_partner_dashboard_usd.xlsx
 refresh_interval_seconds: 10
 
-# Role-based access control
-# "admins" can edit data directly in the app and grant admin access to others
-# Everyone else has read-only view access
-# Use full EY email addresses
-admins:
-  - "justin.d.gold@ey.com"
-  # Add more admin emails below:
-  # - "first.last@ey.com"
-
-# Viewers have read-only dashboard access (managed by admins in-app)
-viewers: []

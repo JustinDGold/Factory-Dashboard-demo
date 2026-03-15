@@ -68,15 +68,6 @@ def is_admin(cfg) -> bool:
     return current in admins
 
 
-def has_access(cfg) -> bool:
-    """Return True if user is an admin or an approved viewer."""
-    if is_admin(cfg):
-        return True
-    viewers = [v.lower().strip() for v in cfg.get("viewers", [])]
-    current = st.session_state.get("user_email", "").lower().strip()
-    return current in viewers
-
-
 def save_config(cfg):
     with open(CONFIG_PATH, "w") as f:
         yaml.safe_dump(cfg, f, default_flow_style=False)
@@ -156,13 +147,18 @@ st.markdown("""
 # ---------------------------------------------------------------------------
 
 cfg = load_config()
-excel_path = cfg["excel_path"]
-mtime = get_file_mtime(excel_path)
+BUNDLED_DATA = Path(__file__).parent / "data" / "factory_ai_partner_dashboard_usd.xlsx"
+excel_path = cfg.get("excel_path", "")
 
 if not os.path.exists(excel_path):
-    st.error(f"Excel file not found: {excel_path}")
-    st.info("Make sure OneDrive is synced and the file path in config.yaml is correct.")
-    st.stop()
+    if BUNDLED_DATA.exists():
+        excel_path = str(BUNDLED_DATA)
+    else:
+        st.error(f"Excel file not found: {excel_path}")
+        st.info("Make sure OneDrive is synced and the file path in config.yaml is correct.")
+        st.stop()
+
+mtime = get_file_mtime(excel_path)
 
 df = load_data(excel_path, mtime)
 kpis = load_kpis(excel_path, mtime)
@@ -235,8 +231,8 @@ if not user_email:
     st.warning("Please enter your EY email in the sidebar to access the dashboard.")
     st.stop()
 
-if not has_access(cfg):
-    st.error("You do not have access to this dashboard. Ask an admin to grant you access.")
+if not user_email.endswith("@ey.com"):
+    st.error("Access is restricted to EY employees. Please enter a valid @ey.com email.")
     st.stop()
 
 # ---------------------------------------------------------------------------
@@ -538,86 +534,41 @@ else:
 
 if user_is_admin:
     st.divider()
-    st.markdown("### Admin: Manage Access")
+    st.markdown("### Admin: Manage Admins")
+    st.caption("Admins can edit data, export, and manage admin access. All EY users can view.")
 
-    tab_viewers, tab_admins = st.tabs(["Viewers", "Admins"])
+    current_admins = cfg.get("admins", [])
+    st.markdown("**Current admins:**")
+    for a in current_admins:
+        st.text(f"  {a}")
 
-    # --- Viewers tab ---
-    with tab_viewers:
-        st.caption("Viewers have read-only access to the dashboard.")
-        current_viewers = cfg.get("viewers", [])
-        if current_viewers:
-            st.markdown("**Current viewers:**")
-            for v in current_viewers:
-                st.text(f"  {v}")
+    new_admin = st.text_input("Add admin email", placeholder="first.last@ey.com", key="add_admin")
+    if st.button("Add Admin") and new_admin:
+        normalized = new_admin.lower().strip()
+        if not normalized.endswith("@ey.com"):
+            st.warning("Please enter a valid @ey.com email address.")
+        elif normalized not in [a.lower().strip() for a in current_admins]:
+            current_admins.append(normalized)
+            cfg["admins"] = current_admins
+            save_config(cfg)
+            st.success(f"Added {normalized} as admin")
+            load_config.clear()
+            st.rerun()
         else:
-            st.info("No viewers added yet. All access is currently admin-only.")
+            st.warning("Email already in admins list.")
 
-        new_viewer = st.text_input("Add viewer email", placeholder="first.last@ey.com", key="add_viewer")
-        if st.button("Add Viewer") and new_viewer:
-            normalized = new_viewer.lower().strip()
-            if not normalized.endswith("@ey.com"):
-                st.warning("Please enter a valid @ey.com email address.")
-            elif normalized in [a.lower().strip() for a in cfg.get("admins", [])]:
-                st.warning("This user is already an admin.")
-            elif normalized not in [v.lower().strip() for v in current_viewers]:
-                current_viewers.append(normalized)
-                cfg["viewers"] = current_viewers
-                save_config(cfg)
-                st.success(f"Added {normalized} as viewer")
-                load_config.clear()
-                st.rerun()
+    if len(current_admins) > 1:
+        remove_admin = st.selectbox("Remove admin", current_admins, key="rm_admin")
+        if st.button("Remove Admin"):
+            if remove_admin.lower().strip() == st.session_state.get("user_email", "").lower().strip():
+                st.warning("You cannot remove yourself.")
             else:
-                st.warning("Email already in viewers list.")
-
-        if current_viewers:
-            remove_viewer = st.selectbox("Remove viewer", current_viewers, key="rm_viewer")
-            if st.button("Remove Viewer"):
-                current_viewers.remove(remove_viewer)
-                cfg["viewers"] = current_viewers
-                save_config(cfg)
-                st.success(f"Removed {remove_viewer}")
-                load_config.clear()
-                st.rerun()
-
-    # --- Admins tab ---
-    with tab_admins:
-        st.caption("Admins can edit data, export, and manage all user access.")
-        current_admins = cfg.get("admins", [])
-        st.markdown("**Current admins:**")
-        for a in current_admins:
-            st.text(f"  {a}")
-
-        new_admin = st.text_input("Add admin email", placeholder="first.last@ey.com", key="add_admin")
-        if st.button("Add Admin") and new_admin:
-            normalized = new_admin.lower().strip()
-            if not normalized.endswith("@ey.com"):
-                st.warning("Please enter a valid @ey.com email address.")
-            elif normalized not in [a.lower().strip() for a in current_admins]:
-                current_admins.append(normalized)
+                current_admins.remove(remove_admin)
                 cfg["admins"] = current_admins
-                # Remove from viewers if they were a viewer
-                viewers = cfg.get("viewers", [])
-                cfg["viewers"] = [v for v in viewers if v.lower().strip() != normalized]
                 save_config(cfg)
-                st.success(f"Added {normalized} as admin")
+                st.success(f"Removed {remove_admin}")
                 load_config.clear()
                 st.rerun()
-            else:
-                st.warning("Email already in admins list.")
-
-        if len(current_admins) > 1:
-            remove_admin = st.selectbox("Remove admin", current_admins, key="rm_admin")
-            if st.button("Remove Admin"):
-                if remove_admin.lower().strip() == st.session_state.get("user_email", "").lower().strip():
-                    st.warning("You cannot remove yourself.")
-                else:
-                    current_admins.remove(remove_admin)
-                    cfg["admins"] = current_admins
-                    save_config(cfg)
-                    st.success(f"Removed {remove_admin}")
-                    load_config.clear()
-                    st.rerun()
 
 # ---------------------------------------------------------------------------
 # Auto-refresh: re-run every N seconds to pick up Excel changes
