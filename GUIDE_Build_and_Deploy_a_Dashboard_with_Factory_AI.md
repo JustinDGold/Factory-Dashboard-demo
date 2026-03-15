@@ -12,8 +12,9 @@ A live, interactive dashboard that:
 - Updates automatically when your Excel file changes
 - Is accessible to everyone at EY via a simple web link
 - Gives you admin control over who can edit data
+- Is secured with Microsoft SSO — users sign in with their real EY account
 
-**Time required:** ~20 minutes
+**Time required:** ~30 minutes (including SSO setup)
 
 **Technical experience required:** None. Factory.AI builds the code for you.
 
@@ -27,6 +28,24 @@ A live, interactive dashboard that:
 | A GitHub account | [github.com](https://github.com) (free) |
 | A Streamlit Community Cloud account | [streamlit.io/cloud](https://streamlit.io/cloud) (free, sign in with GitHub) |
 | Your data in an Excel file (.xlsx) | Any Excel file on your machine or OneDrive |
+| Azure AD app registration (for SSO) | Request from your IT team — see Step 8 and the email template below |
+
+> **Start the Azure request early.** Step 8 requires your IT team to register an app in Azure, which may take a day or two. Send them the request now (template below) so it is ready by the time you reach Step 8. The dashboard works without SSO while you wait, but SSO is required before sharing sensitive data.
+
+### Email Template — Send This to Your IT Team Now
+
+> Hi,
+>
+> I am building an internal Streamlit dashboard and need an Azure AD (Microsoft Entra ID) app registration to enable Microsoft SSO. Could you help with the following?
+>
+> 1. Register a new app called "Factory AI Dashboard"
+> 2. Set supported account types to "Accounts in this organizational directory only"
+> 3. Add a Web redirect URI (I will provide the URL once deployed — placeholder: https://placeholder.streamlit.app)
+> 4. Create a client secret
+> 5. Add the Microsoft Graph "User.Read" delegated permission and grant admin consent
+> 6. Send me the Application (client) ID, Directory (tenant) ID, and client secret value
+>
+> Thank you!
 
 ---
 
@@ -57,6 +76,9 @@ as the data source. Make it update live when the Excel file changes.
 Use EY branding (dark theme, yellow accents). Include KPI cards,
 charts, and filters. Add role-based access so only admins can edit
 and everyone at EY with an @ey.com email can view.
+Include Microsoft SSO authentication using Azure AD so users
+sign in with their real EY Microsoft account. Fall back to
+manual email input if Azure secrets are not yet configured.
 ```
 
 > **How to find your Excel file path:**
@@ -145,7 +167,7 @@ This is how you make the dashboard accessible to everyone at EY via a web link.
 
 ## Step 6: Share With Your Team
 
-Your dashboard is now live. Share the Streamlit URL with anyone at EY.
+Your dashboard is now live. You can share the Streamlit URL with your team to start testing. For non-sensitive data, this is ready to use now. For sensitive data, complete Step 8 (SSO activation) before sharing broadly.
 
 **Access works like this:**
 
@@ -207,15 +229,17 @@ When you update your Excel file:
 
 ---
 
-## Step 8: Secure Your Dashboard with Microsoft SSO (Recommended for Sensitive Data)
+## Step 8: Activate Microsoft SSO
 
-> **Why this matters:** Without SSO, anyone can type any @ey.com email into the dashboard. The app has no way to verify they are who they say they are. If your dashboard contains sensitive or confidential data, you must enable Microsoft SSO. This forces users to sign in with their real EY Microsoft account — the same login they use for Outlook and Teams.
+Your dashboard already has SSO built in from Step 2. Now you activate it by pasting the three values your IT team provided (from the request you sent before starting).
 
-> **Good news:** The dashboard code already supports SSO. You do not need to change any code. You only need to register an app in Azure and paste three values into Streamlit Cloud. Once you do, SSO activates automatically.
+> **Why this step is essential:** Without SSO, anyone can type any @ey.com email into the dashboard with no verification. SSO forces users to sign in with their real EY Microsoft account — the same login they use for Outlook and Teams. This is required before sharing any sensitive data.
+
+> **No code changes needed.** You are only pasting configuration values. The SSO code is already in your app.
 
 ### What You Need
 
-You will need someone at EY with **Azure AD admin** (or **Application Administrator**) access. This is typically someone in your IT or Cloud Infrastructure team. Share this section with them.
+If your IT team has already responded to the email you sent at the start of this guide, you should have the three values (client_id, tenant_id, client_secret) ready to go. If not, follow the steps below to complete the registration yourself, or share this section with your IT contact.
 
 ### 8a. Register an App in Microsoft Entra ID (Azure AD)
 
@@ -301,24 +325,9 @@ redirect_uri = "https://your-app-name.streamlit.app"
 | Only suitable for non-sensitive data | Suitable for sensitive and confidential data |
 | No audit trail | Microsoft logs all sign-ins |
 
-### Quick Summary for Your IT Team
+### Reminder
 
-If you need to send a brief request to your IT team, here is a template:
-
-> Hi,
->
-> I need an Azure AD (Microsoft Entra ID) app registration for an internal Streamlit dashboard. Could you help with the following?
->
-> 1. Register a new app called "Factory AI Dashboard"
-> 2. Set supported account types to "Accounts in this organizational directory only"
-> 3. Add a Web redirect URI: [your Streamlit URL]
-> 4. Create a client secret
-> 5. Add the Microsoft Graph "User.Read" delegated permission and grant admin consent
-> 6. Send me the Application (client) ID, Directory (tenant) ID, and client secret value
->
-> Full setup instructions are here: [link to AZURE_SSO_SETUP.md in your GitHub repo]
->
-> Thank you!
+If your IT team has not yet responded to the email you sent at the beginning of this guide, follow up and provide them with your Streamlit Cloud URL (from Step 5) as the redirect URI. You can also share the `AZURE_SSO_SETUP.md` file from your GitHub repository for full technical details.
 
 ---
 

@@ -69,6 +69,7 @@ def make_word():
         "Updates automatically when your Excel file changes",
         "Is accessible to everyone at EY via a simple web link",
         "Gives you admin control over who can edit data",
+        "Is secured with Microsoft SSO \u2014 users sign in with their real EY account",
     ]
     for item in items:
         doc.add_paragraph(item, style="List Bullet")
@@ -76,7 +77,7 @@ def make_word():
     p = doc.add_paragraph()
     run = p.add_run("Time required: ")
     run.bold = True
-    p.add_run("~20 minutes")
+    p.add_run("~30 minutes (including SSO setup)")
 
     p = doc.add_paragraph()
     run = p.add_run("Technical experience required: ")
@@ -86,7 +87,7 @@ def make_word():
     # ── Prerequisites ──
     doc.add_heading("What You Need Before Starting", level=1)
 
-    table = doc.add_table(rows=5, cols=2)
+    table = doc.add_table(rows=6, cols=2)
     table.style = "Light Grid Accent 1"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     headers = ["Item", "Where to Get It"]
@@ -95,6 +96,7 @@ def make_word():
         ["A GitHub account", "github.com (free)"],
         ["A Streamlit Community Cloud account", "streamlit.io/cloud (free, sign in with GitHub)"],
         ["Your data in an Excel file (.xlsx)", "Any Excel file on your machine or OneDrive"],
+        ["Azure AD app registration (for SSO)", "Request from your IT team \u2014 see Step 8 and email template below"],
     ]
     for i, h in enumerate(headers):
         cell = table.rows[0].cells[i]
@@ -103,6 +105,39 @@ def make_word():
     for r, row_data in enumerate(rows_data):
         for c, val in enumerate(row_data):
             table.rows[r + 1].cells[c].text = val
+
+    # ── Send IT request early ──
+    doc.add_paragraph()
+    p = doc.add_paragraph()
+    run = p.add_run("IMPORTANT: Send the Azure request now. ")
+    run.bold = True
+    run.font.color.rgb = RGBColor(0xE0, 0x00, 0x4D)
+    p.add_run(
+        "Step 8 requires your IT team to register an app in Azure, which may take a day or two. "
+        "Send them the request now so it is ready by the time you reach Step 8. "
+        "The dashboard works without SSO while you wait, but SSO is required before sharing sensitive data."
+    )
+
+    doc.add_heading("Email Template \u2014 Send This to Your IT Team Now", level=2)
+    email_text = (
+        'Hi,\n\n'
+        'I am building an internal Streamlit dashboard and need an Azure AD '
+        '(Microsoft Entra ID) app registration to enable Microsoft SSO. '
+        'Could you help with the following?\n\n'
+        '1. Register a new app called "Factory AI Dashboard"\n'
+        '2. Set supported account types to "Accounts in this organizational directory only"\n'
+        '3. Add a Web redirect URI (I will provide the URL once deployed \u2014 '
+        'placeholder: https://placeholder.streamlit.app)\n'
+        '4. Create a client secret\n'
+        '5. Add the Microsoft Graph "User.Read" delegated permission and grant admin consent\n'
+        '6. Send me the Application (client) ID, Directory (tenant) ID, and client secret value\n\n'
+        'Thank you!'
+    )
+    p = doc.add_paragraph()
+    run = p.add_run(email_text)
+    run.font.size = Pt(10)
+    run.italic = True
+    p.paragraph_format.left_indent = Inches(0.5)
 
     # ── Steps ──
     steps = [
@@ -126,7 +161,10 @@ def make_word():
                  'as the data source. Make it update live when the Excel file changes.\n'
                  'Use EY branding (dark theme, yellow accents). Include KPI cards,\n'
                  'charts, and filters. Add role-based access so only admins can edit\n'
-                 'and everyone at EY with an @ey.com email can view.'),
+                 'and everyone at EY with an @ey.com email can view.\n'
+                 'Include Microsoft SSO authentication using Azure AD so users\n'
+                 'sign in with their real EY Microsoft account. Fall back to\n'
+                 'manual email input if Azure secrets are not yet configured.'),
                 ("heading3", "How to find your Excel file path:"),
                 ("numbered", [
                     "Open Finder",
@@ -230,14 +268,14 @@ def make_word():
             ],
         },
         {
-            "title": "Step 8: Secure Your Dashboard with Microsoft SSO",
+            "title": "Step 8: Activate Microsoft SSO",
             "content": [
-                ("heading3", "Why This Matters"),
-                ("text", "Without SSO, anyone can type any @ey.com email into the dashboard. There is no way to verify they are who they say they are. If your dashboard contains sensitive or confidential data, you must enable Microsoft SSO."),
-                ("text", "SSO forces users to sign in with their real EY Microsoft account — the same login they use for Outlook and Teams."),
-                ("tip", "The dashboard code already supports SSO. You do not need to change any code. You only need to register an app in Azure and paste three values into Streamlit Cloud. Once you do, SSO activates automatically."),
+                ("text", "Your dashboard already has SSO built in from Step 2. Now you activate it by pasting the three values your IT team provided (from the request you sent before starting)."),
+                ("heading3", "Why This Step Is Essential"),
+                ("text", "Without SSO, anyone can type any @ey.com email into the dashboard with no verification. SSO forces users to sign in with their real EY Microsoft account \u2014 the same login they use for Outlook and Teams. This is required before sharing any sensitive data."),
+                ("tip", "No code changes needed. You are only pasting configuration values. The SSO code is already in your app."),
                 ("heading3", "What You Need"),
-                ("text", "You will need someone at EY with Azure AD admin (or Application Administrator) access. This is typically someone in your IT or Cloud Infrastructure team."),
+                ("text", "If your IT team has already responded to the email you sent at the start of this guide, you should have the three values (client_id, tenant_id, client_secret) ready to go. If not, follow the steps below or share this section with your IT contact."),
                 ("heading3", "8a. Register an App in Microsoft Entra ID"),
                 ("numbered", [
                     "Go to portal.azure.com and sign in with your EY account",
@@ -506,8 +544,9 @@ def make_ppt():
         "Automatic updates when your spreadsheet changes",
         "Accessible to everyone at EY via a web link",
         "Admin controls for editing and access management",
+        "Secured with Microsoft SSO — real EY account sign-in",
         "",
-        "Time: ~20 minutes  |  Technical experience: None",
+        "Time: ~30 minutes (including SSO)  |  Technical experience: None",
     ])
 
     # ── Slide 3: What You Need ──
@@ -516,6 +555,21 @@ def make_ppt():
         "2.  A GitHub account — github.com (free)",
         "3.  A Streamlit Cloud account — streamlit.io/cloud (free)",
         "4.  Your data in an Excel file (.xlsx)",
+        "5.  Azure AD app registration — request from IT (see next slide)",
+    ])
+
+    # ── Slide 3b: Send IT Request Now ──
+    add_slide("FIRST: Send This Email to Your IT Team", [
+        "Send this request NOW — it may take a day or two to process.",
+        "The dashboard works without SSO while you wait.",
+        "",
+        '"Hi, I need an Azure AD app registration for a Streamlit dashboard.',
+        '  1. Register app: Factory AI Dashboard',
+        '  2. Account type: This organizational directory only',
+        '  3. Redirect URI: Web > [I will provide the URL]',
+        '  4. Create a client secret',
+        '  5. Add User.Read permission + grant admin consent',
+        '  6. Send me: client_id, tenant_id, client_secret"',
     ])
 
     # ── Slide 4: Step 1 ──
@@ -532,10 +586,11 @@ def make_ppt():
     add_slide("Step 2: Describe Your Dashboard", [
         "Tell Factory.AI what you want. Example:",
         "",
-        '   "Create a Streamlit dashboard using the Excel file at',
-        '    [your file path] as the data source.',
+        '   "Create a Streamlit dashboard using [my file path].',
         '    Use EY branding. Include KPI cards, charts, and filters.',
-        '    Add role-based access for @ey.com emails."',
+        '    Add role-based access for @ey.com emails.',
+        '    Include Microsoft SSO using Azure AD.',
+        '    Fall back to email input if Azure secrets are not configured."',
         "",
         "Tip: Right-click your Excel file > Option + Copy as Pathname",
     ])
@@ -578,7 +633,8 @@ def make_ppt():
 
     # ── Slide 9: Step 6 ──
     add_slide("Step 6: Share With Your Team", [
-        "Send the Streamlit URL to anyone at EY.",
+        "Share the Streamlit URL to start testing.",
+        "For sensitive data, complete Step 8 (SSO) before sharing broadly.",
         "",
         "Access model:",
         "   Any @ey.com email  →  View dashboard (read-only)",
@@ -600,15 +656,15 @@ def make_ppt():
         "Streamlit Cloud redeploys automatically (~1 minute).",
     ])
 
-    # ── Slide 11: SSO - Why It Matters ──
-    add_slide("Step 8: Secure with Microsoft SSO", [
-        "Without SSO, anyone can type any @ey.com email — no verification.",
-        "With SSO, users sign in with their real EY Microsoft account.",
+    # ── Slide 11: SSO - Activate ──
+    add_slide("Step 8: Activate Microsoft SSO", [
+        "Your app already has SSO built in from Step 2.",
+        "Now you activate it with the 3 values from your IT team.",
         "",
-        "IMPORTANT: Required if your dashboard has sensitive data.",
+        "Without SSO: anyone can type any @ey.com email — no verification.",
+        "With SSO: users sign in with their real EY Microsoft account.",
         "",
-        "Good news: The code already supports SSO.",
-        "You only need to paste 3 values — zero code changes.",
+        "Zero code changes needed — you are only pasting configuration.",
     ])
 
     # ── Slide 12: SSO - Register the App ──
@@ -671,17 +727,18 @@ def make_ppt():
         "The app switches automatically — no code changes needed.",
     ])
 
-    # ── Slide 17: IT Request Template ──
-    add_slide("Email Template for Your IT Team", [
-        '"Hi, I need an Azure AD app registration for a Streamlit dashboard."',
+    # ── Slide 17: Reminder ──
+    add_slide("Reminder: Follow Up with IT", [
+        "If your IT team has not yet responded to the email",
+        "you sent at the beginning of this guide:",
         "",
-        "Ask them to:",
-        '  1.  Register app named "Factory AI Dashboard"',
-        "  2.  Set to EY tenant only",
-        "  3.  Add Web redirect URI: [your Streamlit URL]",
-        "  4.  Create a client secret",
-        "  5.  Add User.Read permission + grant admin consent",
-        "  6.  Send you the client_id, tenant_id, and client_secret",
+        "  1.  Follow up and provide your Streamlit Cloud URL",
+        "       (from Step 5) as the redirect URI",
+        "  2.  Share the AZURE_SSO_SETUP.md file from your",
+        "       GitHub repository for full technical details",
+        "",
+        "Once you have the 3 values, paste them into Streamlit",
+        "Cloud Secrets (Step 8e) and SSO goes live instantly.",
     ])
 
     # ── Slide 18: Troubleshooting ──
