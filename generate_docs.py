@@ -605,7 +605,8 @@ def make_ppt():
         '    Anyone with an @ey.com email can view.',
         '    Only admins can edit. Let me add and remove admins',
         '    directly inside the app by entering their @ey.com email.',
-        '    Include Microsoft SSO using Azure AD."',
+        '    Include Microsoft SSO using Azure AD. Fall back to',
+        '    manual email input if Azure secrets are not yet configured."',
         "",
         "Tip: Right-click your Excel file > Option + Copy as Pathname",
     ])
