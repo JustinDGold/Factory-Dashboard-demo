@@ -252,6 +252,13 @@ fdf = df[mask].copy()
 # Header
 # ---------------------------------------------------------------------------
 
+st.markdown(
+    '<div style="background-color:#E0004D;color:#FFFFFF;padding:10px 16px;border-radius:6px;'
+    'font-weight:bold;text-align:center;font-size:1rem;margin-bottom:12px;">'
+    'This dashboard uses fake data for demo purposes only.'
+    '</div>',
+    unsafe_allow_html=True,
+)
 st.markdown("## Factory.AI Partner Dashboard (USD)")
 st.caption("Real-time view powered by OneDrive-synced Excel data")
 
