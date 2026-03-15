@@ -1,0 +1,15 @@
+# Factory.ai Partner Dashboard Configuration
+
+# Path to the source Excel file (OneDrive-synced)
+excel_path: "/Users/Justin.D.Gold/Library/CloudStorage/OneDrive-EY/factory_ai_partner_dashboard_usd.xlsx"
+
+# How often to check for file changes (seconds)
+refresh_interval_seconds: 10
+
+# Role-based access control
+# "editors" can modify filters/settings and export data
+# Everyone else has read-only view access
+editors:
+  - "justin.d.gold"
+  # Add more editor usernames below:
+  # - "first.last"
