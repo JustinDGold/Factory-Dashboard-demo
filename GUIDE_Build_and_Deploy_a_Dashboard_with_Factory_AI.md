@@ -74,8 +74,9 @@ Create a Streamlit dashboard using the Excel file at
 "/Users/YourName/OneDrive - EY/my_data_file.xlsx"
 as the data source. Make it update live when the Excel file changes.
 Use EY branding (dark theme, yellow accents). Include KPI cards,
-charts, and filters. Add role-based access so only admins can edit
-and everyone at EY with an @ey.com email can view.
+charts, and filters. Anyone with an @ey.com email can view.
+Only admins can edit data. Let me add and remove admins
+directly inside the app by entering their @ey.com email.
 Include Microsoft SSO authentication using Azure AD so users
 sign in with their real EY Microsoft account. Fall back to
 manual email input if Azure secrets are not yet configured.

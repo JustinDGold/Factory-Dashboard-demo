@@ -160,8 +160,9 @@ def make_word():
                  '"/Users/YourName/OneDrive - EY/my_data_file.xlsx"\n'
                  'as the data source. Make it update live when the Excel file changes.\n'
                  'Use EY branding (dark theme, yellow accents). Include KPI cards,\n'
-                 'charts, and filters. Add role-based access so only admins can edit\n'
-                 'and everyone at EY with an @ey.com email can view.\n'
+                 'charts, and filters. Anyone with an @ey.com email can view.\n'
+                 'Only admins can edit data. Let me add and remove admins\n'
+                 'directly inside the app by entering their @ey.com email.\n'
                  'Include Microsoft SSO authentication using Azure AD so users\n'
                  'sign in with their real EY Microsoft account. Fall back to\n'
                  'manual email input if Azure secrets are not yet configured.'),
@@ -601,9 +602,10 @@ def make_ppt():
         "",
         '   "Create a Streamlit dashboard using [my file path].',
         '    Use EY branding. Include KPI cards, charts, and filters.',
-        '    Add role-based access for @ey.com emails.',
-        '    Include Microsoft SSO using Azure AD.',
-        '    Fall back to email input if Azure secrets are not configured."',
+        '    Anyone with an @ey.com email can view.',
+        '    Only admins can edit. Let me add and remove admins',
+        '    directly inside the app by entering their @ey.com email.',
+        '    Include Microsoft SSO using Azure AD."',
         "",
         "Tip: Right-click your Excel file > Option + Copy as Pathname",
     ])
